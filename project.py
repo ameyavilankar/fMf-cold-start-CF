@@ -4,6 +4,9 @@ from StringIO import StringIO
 import math 
 import random
 
+# import form user defined libraries
+import decision_tree as dtree
+import optimization as opt
 
 # get the data from the MovieLens Dataset
 def getRatingMatrix(filename):
@@ -105,6 +108,27 @@ def splitUsers(data, movie_index):
     return data[indices_like, :], data[indices_dislike, :], data[indices_unknown, :]
 
 
+def alternateOptimization(rating_matrix):
+    # Save and print the Number of Users and Movies
+    NUM_USERS = rating_matrix.shape[0]
+    NUM_MOVIES = rating_matrix.shape[1]
+    print "Number of Users", NUM_USERS
+    print "Number of Movies", NUM_MOVIES
+
+    # Set the number of Factors
+    NUM_OF_FACTORS = 3
+    print "Number of Latent Factors: ", NUM_OF_FACTORS
+
+    # Create the user and item profile vector of appropriate size.
+    # Initialize the item vectors randomly, check the random generation
+    user_vectors = np.zeros((NUM_USERS, NUM_OF_FACTORS), dtype=float)
+    movie_vectors = np.random.rand(NUM_MOVIES, NUM_OF_FACTORS)
+
+    (user_vectors, movie_vectors) = opt.user_optimization(rating_matrix, user_vectors, movie_vectors, NUM_OF_FACTORS)
+
+    return np.dot(user_vectors, movie_vectors.T)
+
+
 if __name__ == "__main__":
     # Get the Data
     (User_Movie_Dict, data) = getRatingMatrix("ratings_small.dat")
@@ -127,4 +151,16 @@ if __name__ == "__main__":
     print "Dimensions of the Dislike: ", dislike.shape
     print "Dimensions of the Unknown: ", unknown.shape
 
+    # Testing
+    # testMatrix = np.array([[0, 5, 3, 4, 0], [3, 4, 0, 3, 1], [3, 0, 4, 0, 2], [4, 4, 4, 3, 0], [3, 5, 0, 4, 0]])
     
+
+
+    """
+    # Get the decision tree and the item profile vectors using alternate optimization
+    #(decisionTree, item_vector) = alternateOptimization(train)
+
+    # TODO: Traverse the decision Tree using the answer set
+
+    # TODO: Various Metrics and Plotting
+    """

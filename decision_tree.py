@@ -3,6 +3,9 @@ import numpy as np
 from StringIO import StringIO
 import math 
 
+# import form user defined libraries
+import optimization as opt
+
 # This class represents each Node of the Decision Tree
 # TODO: Add more data members
 class Node:
@@ -49,13 +52,13 @@ class Tree:
 			# Get the like, dislike and unknown user vector
 			# TODO: Normal Regularization...USE Hierarchical Regularization
 			random_vectors = np.random.rand(len(like), K)
-			like_vector = user_optimization(like, random_vectors, movie_vectors, K)
+			like_vector = opt.user_optimization(like, random_vectors, movie_vectors, K)
 
 			random_vectors = np.random.rand(len(dislike), K)
-			dislike_vector = user_optimization(dislike, random_vectors, movie_vectors, K)
+			dislike_vector = opt.user_optimization(dislike, random_vectors, movie_vectors, K)
 			
 			random_vectors = np.random.rand(len(unknown), K)
-			unknown_vector = user_optimization(unknown, random_vectors, movie_vectors, K)
+			unknown_vector = opt.user_optimization(unknown, random_vectors, movie_vectors, K)
 
 			# Calculate the split criteria value
 			value = 0
@@ -105,3 +108,5 @@ class Tree:
 			self.fitTree(current_node.unknown, unknown, movie_vectors, K)
 
 		return
+
+
