@@ -6,7 +6,7 @@ import random
 
 
 # get the data from the MovieLens Dataset
-def getUserMovieDict(filename):
+def getRatingMatrix(filename):
     # Open the file for reading data
     file = open(filename, "r")
 
@@ -48,16 +48,15 @@ def getUserMovieDict(filename):
         print "Number of Users: ", num_users
         print "Number of Movies: ", num_movies
 
-        data_array = np.zeros((num_users, num_movies))
+        # Creat and initialise Rating Matrix to hold all the rating values
+        ratingMatrix = np.zeros((num_users, num_movies))
 
         for list1 in data:
             # print list1[0], " ", list1[1]
-            data_array[list1[0] - 1][list1[1] - 1] = list1[2]
+            ratingMatrix[list1[0] - 1][list1[1] - 1] = list1[2]
             
-        print data_array.shape
-
         # Return both the array and the dict
-        return (User_Movie_Dict, data_array)
+        return (User_Movie_Dict, ratingMatrix)
 
 
 # Function to calculate the RMSE Error between the predicted and actual rating
@@ -108,7 +107,7 @@ def splitUsers(data, movie_index):
 
 if __name__ == "__main__":
     # Get the Data
-    (User_Movie_Dict, data) = getUserMovieDict("ratings_small.dat")
+    (User_Movie_Dict, data) = getRatingMatrix("ratings_small.dat")
 
     print "Dimensions of the Dataset: ", data.shape
     
