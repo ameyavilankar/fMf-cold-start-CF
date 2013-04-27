@@ -93,7 +93,7 @@ def random_split(data):
 # Split the users into Like, Dislike and Unknown Users
 def splitUsers(data, movie_index):
     # Get the indices for the when the rating is greater than 3: LIKE
-    indices_like = np.where(data[:, movie_index] >= 3.0)[0]
+    indices_like = np.where(data[:, movie_index] > 3.0)[0]
 
     # Get the indices for the when the rating is less than 3: DISLIKE
     indices_dislike = np.where((data[:, movie_index] <= 3.0) & (data[:, movie_index] != 0))[0]
@@ -105,7 +105,8 @@ def splitUsers(data, movie_index):
     print data[indices_dislike, :][:, movie_index]
     print data[indices_unknown, :][:, movie_index]
 
-    return data[indices_like, :], data[indices_dislike, :], data[indices_unknown, :]
+    return indices_like, indices_dislike, indices_unknown
+    # return data[indices_like, :], data[indices_dislike, :], data[indices_unknown, :]
 
 # Returns the rating Matrix with approximated ratings for all users for all movies using fMf
 def alternateOptimization(rating_matrix):
@@ -133,12 +134,11 @@ def alternateOptimization(rating_matrix):
         decTree.fitTree(decTree.root, rating_matrix, movie_vectors, NUM_OF_FACTORS)
 
         # Calculate the User vectors using dtree??
-
+        
         # Optimize Movie vector using the calculated user vectors
         movie_vectors = opt.movie_optimization(rating_matrix, user_vectors, movie_vectors, NUM_OF_FACTORS)
 
         # Calculate Error for Convergence check
-
 
 
     # return the completed rating matrix    
