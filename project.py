@@ -107,7 +107,7 @@ def splitUsers(data, movie_index):
 
     return data[indices_like, :], data[indices_dislike, :], data[indices_unknown, :]
 
-
+# Returns the rating Matrix with approximated ratings for all users for all movies using fMf
 def alternateOptimization(rating_matrix):
     # Save and print the Number of Users and Movies
     NUM_USERS = rating_matrix.shape[0]
@@ -126,6 +126,22 @@ def alternateOptimization(rating_matrix):
 
     (user_vectors, movie_vectors) = opt.user_optimization(rating_matrix, user_vectors, movie_vectors, NUM_OF_FACTORS)
 
+    # Do converge Check
+    while True:
+        # Create the decision Tree based on movie_vectors
+        decTree = dtree.Tree(Node(None, 1))
+        decTree.fitTree(decTree.root, rating_matrix, movie_vectors, NUM_OF_FACTORS)
+
+        # Calculate the User vectors using dtree??
+
+        # Optimize Movie vector using the calculated user vectors
+        movie_vectors = opt.movie_optimization(rating_matrix, user_vectors, movie_vectors, NUM_OF_FACTORS)
+
+        # Calculate Error for Convergence check
+
+
+
+    # return the completed rating matrix    
     return np.dot(user_vectors, movie_vectors.T)
 
 

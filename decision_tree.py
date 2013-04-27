@@ -7,7 +7,6 @@ import math
 import optimization as opt
 
 # This class represents each Node of the Decision Tree
-# TODO: Add more data members
 class Node:
 	def __init__(self, parent_node, node_depth):
 		# Each Node has a Like, Dislike and Unknown Child
@@ -18,12 +17,11 @@ class Node:
 		self.disklike = None
 		self.unknown = None
 		self.movie_index = None
-		
-		# TODO: ADD user profile vector assoicated with each node
+		self.user_vector = None
 
 class Tree:
 	# __init__() sets the root node, currentDepth and maxdepth of the tree
-	def __init__(self, root_node, leaf_size = 1, max_depth = 7):
+	def __init__(self, root_node, max_depth = 7):
 		self.root = root_node
 		self.max_depth = max_depth
 
@@ -40,6 +38,16 @@ class Tree:
 		
 		# Set the depth of the current Node
 		current_node.depth = currentDepth
+
+		# Calulate the Error Before the Split
+		error_before = 0
+        for i in xrange(len(rating_matrix)):
+            for j in xrange(len(rating_matrix[i])):
+                if rating_matrix[i][j] > 0:
+                    error = error + pow(rating_matrix[i][j] - np.dot(user_vectors[i,:].T, movie_vectors[:,j]), 2)
+                    # TODO: Check if regularized
+                    # for k in xrange(K):
+                    #    error = error + (lambda_r) * (pow(user_vectors[i][k],2))
 
 		#Create a numy_array to hold the split_criteria Values
 		split_values = np.zeros(rating_matrix[0])
@@ -93,20 +101,46 @@ class Tree:
 		# Split the rating_matrix into like, dislike and unknown
 		(like, dislike, unknown) = splitUsers(rating_matrix, bestMovie)
 
-		# TODO: Set the user profile vector for the current Node..after addding it to the node class
+		# Calculate the User Profile Vector for each of the three classes
+		random_vectors = np.random.rand(len(like), K)
+		like_vector = opt.user_optimization(like, random_vectors, movie_vectors, K)
 
-		# TODO CONDITION check condition RMSE Error check
-		if True:
+		random_vectors = np.random.rand(len(dislike), K)
+		dislike_vector = opt.user_optimization(dislike, random_vectors, movie_vectors, K)
+		
+		random_vectors = np.random.rand(len(unknown), K)
+		unknown_vector = opt.user_optimization(unknown, random_vectors, movie_vectors, K)		
+
+		# TODO CONDITION check condition RMSE Error check is CORRECT?
+		if split_values[bestMovie] < error_before:
 			# Recursively call the fitTree function for like, dislike and unknown Nodes creation
 			current_node.like = Node(current_node, current_node.depth + 1)
+			current_node.like.user_vector = like_vector
 			self.fitTree(current_node.like, like, movie_vectors, K)
 
 			current_node.dislike = Node(current_node, current_node.depth + 1)
+			current_node.dislike.user_vector = dislike_vector
 			self.fitTree(current_node.dislike, dislike, movie_vectors, K)
 			
 			current_node.unknown = Node(current_node, current_node.depth + 1)
+			current_node.unknown.user_vector = unknown_vector
 			self.fitTree(current_node.unknown, unknown, movie_vectors, K)
 
 		return
+
+
+	# fucntion used to traverse a tree based on the answers
+	def travese(user_answers):
+
+		current_node = root
+
+		for answer in user_answers:
+			if answer == 0:
+				current_node = root.like
+			elif answer == 1:
+				current_node = root.dislike
+			else:
+				current_node = root.unknown_vector
+
 
 
