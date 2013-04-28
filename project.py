@@ -90,24 +90,6 @@ def random_split(data):
     return data[training_indices,:], data[test_indices,:]
 
 
-# Split the users into Like, Dislike and Unknown Users
-def splitUsers(data, movie_index):
-    # Get the indices for the when the rating is greater than 3: LIKE
-    indices_like = np.where(data[:, movie_index] > 3.0)[0]
-
-    # Get the indices for the when the rating is less than 3: DISLIKE
-    indices_dislike = np.where((data[:, movie_index] <= 3.0) & (data[:, movie_index] != 0))[0]
-
-    # Get the indices for the when the rating is equal to 0: UNKNOWN
-    indices_unknown = np.where(data[:, movie_index] == 0)[0]
-    
-    print data[indices_like, :][:, movie_index]
-    print data[indices_dislike, :][:, movie_index]
-    print data[indices_unknown, :][:, movie_index]
-
-    return indices_like, indices_dislike, indices_unknown
-    # return data[indices_like, :], data[indices_dislike, :], data[indices_unknown, :]
-
 # Returns the rating Matrix with approximated ratings for all users for all movies using fMf
 def alternateOptimization(rating_matrix):
     # Save and print the Number of Users and Movies
@@ -125,21 +107,37 @@ def alternateOptimization(rating_matrix):
     user_vectors = np.zeros((NUM_USERS, NUM_OF_FACTORS), dtype=float)
     movie_vectors = np.random.rand(NUM_MOVIES, NUM_OF_FACTORS)
 
-    (user_vectors, movie_vectors) = opt.user_optimization(rating_matrix, user_vectors, movie_vectors, NUM_OF_FACTORS)
+    i = 0    
+    
+    print "Entering Main Loop of alternateOptimization"
 
     # Do converge Check
-    while True:
+    while i < 10:
         # Create the decision Tree based on movie_vectors
-        decTree = dtree.Tree(Node(None, 1))
+        print "Creating tree..."
+
+        decTree = dtree.Tree(dtree.Node(None, 1), rating_matrix, NUM_OF_FACTORS)
+        
+        print "Creating Tree.. for i = ", i
+
         decTree.fitTree(decTree.root, rating_matrix, movie_vectors, NUM_OF_FACTORS)
 
-        # Calculate the User vectors using dtree??
-        
+        print "Tree Created for i = ", i
+        print "Getting the user vectors from tree"
+
+        # Calculate the User vectors using dtree
+        user_vectors = decTree.getUserVectors(rating_matrix, NUM_OF_FACTORS)
+
+        print "Got the user vectors from the decisionTree"
+        print "Optimizing movie_vectors.."
+
         # Optimize Movie vector using the calculated user vectors
         movie_vectors = opt.movie_optimization(rating_matrix, user_vectors, movie_vectors, NUM_OF_FACTORS)
 
+        print "movie_vectors Optimized"
+        
         # Calculate Error for Convergence check
-
+        i = i + 1
 
     # return the completed rating matrix    
     return np.dot(user_vectors, movie_vectors.T)
@@ -161,18 +159,25 @@ if __name__ == "__main__":
     print "Dimensions of the Answer Set: ", answer.shape
     print "Dimensions of the Evaluation Set: ", evaluation.shape
 
-    (like, dislike, unknown) = splitUsers(data, 2293)
     
-    print "Dimensions of the Like: ", like.shape
-    print "Dimensions of the Dislike: ", dislike.shape
-    print "Dimensions of the Unknown: ", unknown.shape
+    Predicted_Rating = alternateOptimization(train)
+
+    """
+    (indices_like, indices_dislike, indices_unknown) = splitUsers(data, 2293)
+    
+    like = data[indices_like]
+    dislike = data[indices_dislike]
+    unknown = data[indices_unknown]
+
+    print "Dimensions of the Like: ", like.shape[0], like.shape[1]
+    print "Dimensions of the Dislike: ", dislike.shape[0], dislike.shape[1]
+    print "Dimensions of the Unknown: ", unknown.shape[0], unknown.shape[1]
 
     # Testing
     # testMatrix = np.array([[0, 5, 3, 4, 0], [3, 4, 0, 3, 1], [3, 0, 4, 0, 2], [4, 4, 4, 3, 0], [3, 5, 0, 4, 0]])
     
+    
 
-
-    """
     # Get the decision tree and the item profile vectors using alternate optimization
     #(decisionTree, item_vector) = alternateOptimization(train)
 

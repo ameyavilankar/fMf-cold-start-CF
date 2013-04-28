@@ -9,7 +9,7 @@ def user_optimization(rating_matrix, user_vectors, movie_vectors, K):
     # Set up the constants for use WHAT VALUES TO USE
     # alpha is learning rate and lambda_r is regularization parameter
     MAX_ITERATIONS = 5000
-    alpha = 0.0002
+    alpha = 0.005
     lambda_r = 0.02
     
     # Take the transpose of the item_vector array
@@ -26,7 +26,7 @@ def user_optimization(rating_matrix, user_vectors, movie_vectors, K):
                     # Change the Vectors depending on the derivative, only change movie_vector: ALTERNATING OPTIMIZATION
                     for k in xrange(K):
                         user_vectors[i][k] = user_vectors[i][k] + alpha * (2 * error * movie_vectors[k][j] - lambda_r * user_vectors[i][k])
-                        # movie_vectors[k][j] = movie_vectors[k][j] + alpha * (2 * error * user_vectors[i][k] - lambda_r * movie_vectors[k][j])
+                        movie_vectors[k][j] = movie_vectors[k][j] + alpha * (2 * error * user_vectors[i][k] - lambda_r * movie_vectors[k][j])
         
         # Calculate the Total Error
         error = 0
@@ -36,6 +36,8 @@ def user_optimization(rating_matrix, user_vectors, movie_vectors, K):
                     error = error + pow(rating_matrix[i][j] - np.dot(user_vectors[i,:],movie_vectors[:,j]), 2)
                     for k in xrange(K):
                         error = error + (lambda_r) * (pow(user_vectors[i][k],2))
+
+        print "Error: ", error
 
         # Break if converged        
         if error < 0.001:
@@ -79,7 +81,7 @@ def movie_optimization(rating_matrix, user_vectors, movie_vectors, K):
                         error = error + (lambda_r) * (pow(movie_vectors[k][j],2))
 
         # Break if converged
-        if error < 0.001:
+        if error < 0.01:
             break
 
     # return the movie profile vectors
