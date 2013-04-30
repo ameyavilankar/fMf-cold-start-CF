@@ -26,6 +26,30 @@ def splitUsers(data, movie_index):
     # return data[indices_like, :], data[indices_dislike, :], data[indices_unknown, :]
 
 
+def closed_form(rating_matrix, movie_vectors, indices, K):
+	# Stores the user profile vectors
+	user_profiles = np.zeros((len(indices), K))
+	index_matrix = rating_matrix[indices]
+	
+	count = 0
+	for i in indices:
+		first_term = np.zeros((K, K))
+		
+		for j in xrange(len(movie_vectors)):
+			first_term = np.add(first_term, np.outer(movie_vectors[j], movie_vectors[j]))
+
+		# Take the inverse of the first term
+		first_term = np.linalg.inv(first_term)
+
+		second_term = np.zeros(K)
+
+		for j in xrange(len(movie_vectors)):
+			second_term = np.add(second_term, np.multiply(rating_matrix[i][j], movie_vectors[j]))
+
+		user_profiles[count] = np.dot(first_term, second_term)
+		count = count + 1
+
+	return user_profiles
 
 # This class represents each Node of the Decision Tree
 class Node:
@@ -35,7 +59,7 @@ class Node:
 		self.parent = parent_node
 		self.depth = node_depth
 		self.like = None
-		self.disklike = None
+		self.dislike = None
 		self.unknown = None
 		self.movie_index = None
 		self.user_vector = None
@@ -47,27 +71,28 @@ class Tree:
 		self.root.user_vector = np.random.rand(len(rating_matrix), K)
 		self.max_depth = max_depth
 
-
 	# fucntion used to traverse a tree based on the answers
-	def traverse(self, user_response):
+	def traverse(self, user_answers):
 		# rand_prob[rand_prob > prob_failure] = 1
-		current_node = root
+		current_node = self.root
 
+		print "Before"
 		# Traverse the tree till you reach the leaf
 		while current_node.like != None or current_node.dislike != None or current_node.unknown != None : 
 			if user_answers[current_node.movie_index] == 0:
-				current_node = root.like
+				current_node = current_node.like
 			elif user_answers[current_node.movie_index] == 1:
-				current_node = root.dislike
+				current_node = current_node.dislike
 			else:
-				current_node = root.unknown_vector
+				current_node = current_node.unknown
 		
 		# return the user vecotr associated with the lead node
-		return current_node.user_vector
+		print "zzz", current_node.user_vector.shape
+		return np.mean(current_node.user_vector, axis = 0)
 
 	# Returns the user vector for the decision tree
 	def getUserVectors(self, rating_matrix, K):
-		ultimate_user_vector = np.zeros(len(rating_matrix), K)
+		ultimate_user_vector = np.zeros((len(rating_matrix), K))
 		
 		for i in xrange(len(rating_matrix)):
 			# Stores the user response
@@ -83,7 +108,9 @@ class Tree:
 					user_response[j] = 1
 
 			# Traverse the tree abd store the user vector associated with leaf node reached
-			ultimate_user_vector[i] = traverse(user_response)
+			temp = self.traverse(user_response)
+			print "zz", temp.shape
+			ultimate_user_vector[i] = temp
 
 		# return the user vector
 		return ultimate_user_vector
@@ -112,12 +139,9 @@ class Tree:
 	    #Create a numy_array to hold the split_criteria Values
 		split_values = np.zeros(len(rating_matrix[0]))
 
-		print "Error Before: ", error_before
+		# print "Error Before: ", error_before
 
 		for movie_index in xrange(len(rating_matrix[0])):
-			# Split the rating_matrix into like, dislike and unknown based on the current MovieIndex
-			(like, dislike, unknown) = splitUsers(rating_matrix, movie_index)
-
 			# Split the rating_matrix into like, dislike and unknown
 			(indices_like, indices_dislike, indices_unknown) = splitUsers(rating_matrix, movie_index)
 
@@ -130,21 +154,20 @@ class Tree:
 			unknown = rating_matrix[indices_unknown]
 			parent_unknown_vector = current_node.user_vector[indices_unknown]
 
-			print "Split the data into like, disklike and unknown for movie", movie_index
+			# print "Split the data into like, disklike and unknown for movie", movie_index
 
 			# Calculate the User Profile Vector for each of the three classes
+			like_vector = closed_form(rating_matrix, movie_vectors, indices_like, K)
+			dislike_vector = closed_form(rating_matrix, movie_vectors, indices_dislike, K)
+			unknown_vector = closed_form(rating_matrix, movie_vectors, indices_unknown, K)
 
-			print "optimizing like..."
-			random_vectors = np.random.rand(len(like), K)
-			like_vector = opt.user_optimization(like, random_vectors, movie_vectors, K)
+			# print "Like vector: ", like_vector.shape
+			# print "Disike vector: ", dislike_vector.shape
+			# print "Unknown vector: ", unknown_vector.shape
 
-			print "optimizing dislike..."
-			random_vectors = np.random.rand(len(dislike), K)
-			dislike_vector = opt.user_optimization(dislike, random_vectors, movie_vectors, K)
-			
-			print "optimizing unknown..."
-			random_vectors = np.random.rand(len(unknown), K)
-			unknown_vector = opt.user_optimization(unknown, random_vectors, movie_vectors, K)
+			# print "Like matrix", like.shape
+			# print "DisLike matrix", dislike.shape
+			# print "Unknown matrix", unknown.shape
 			
 			# Calculate the split criteria value
 			value = 0
@@ -153,25 +176,28 @@ class Tree:
 			for i in xrange(len(like)):
 				for j in xrange(len(like[i])):
 					if like[i][j] > 0:
-						value = value + pow(like[i][j] - np.dot(like_vector[i, :], movie_vectors[:,j].T), 2)
+						# print "1: ", like_vector[i, :].shape, "2: ", movie_vectors[j,:].shape
+						value = value + pow(like[i][j] - np.dot(like_vector[i, :], movie_vectors[j, :]), 2)
 
 	        # Add the dislike part
 			for i in xrange(len(dislike)):
 				for j in xrange(len(dislike[i])):
 					if dislike[i][j] > 0:
-						value = value + pow(dislike[i][j] - np.dot(dislike_vector[i, :], movie_vectors[:,j].T), 2)
+						value = value + pow(dislike[i][j] - np.dot(dislike_vector[i, :], movie_vectors[j, :]), 2)
 
 	        # Add the unknown part
 			for i in xrange(len(unknown)):
 				for j in xrange(len(unknown[i])):
 					if unknown[i][j] > 0:
-						value = value + pow(unknown[i][j] - np.dot(unknown_vector[i, :], movie_vectors[:,j].T), 2)
+						value = value + pow(unknown[i][j] - np.dot(unknown_vector[i, :], movie_vectors[j, :]), 2)
 			
 			# Store the split criteria values for current movie_index
 			split_values[movie_index]  = value
 
 		# Get the index of the movie with the maximum split value
 		bestMovie = np.argmax(split_values)
+
+		#print "bestMovie index: ", bestMovie
 
 		# Store the movie_index for the current_node
 		current_node.movie_index = bestMovie
@@ -189,17 +215,13 @@ class Tree:
 		parent_unknown_vector = current_node.user_vector[indices_unknown]
 
 		# Calculate the User Profile Vector for each of the three classes
-		print "optimizing like..."
-		random_vectors = np.random.rand(len(like), K)
-		like_vector = opt.user_optimization(like, random_vectors, movie_vectors, K)
+		# print "optimizing like, dislike and unknown..."
+	
+		# Calculate the User Profile Vector for each of the three classes
+		like_vector = closed_form(rating_matrix, movie_vectors, indices_like, K)
+		dislike_vector = closed_form(rating_matrix, movie_vectors, indices_dislike, K)
+		unknown_vector = closed_form(rating_matrix, movie_vectors, indices_unknown, K)
 
-		print "optimizing dislike..."
-		random_vectors = np.random.rand(len(dislike), K)
-		dislike_vector = opt.user_optimization(dislike, random_vectors, movie_vectors, K)
-		
-		print "optimizing unknown..."
-		random_vectors = np.random.rand(len(unknown), K)
-		unknown_vector = opt.user_optimization(unknown, random_vectors, movie_vectors, K)
 
 
 		# CONDITION check condition RMSE Error check is CORRECT
@@ -207,12 +229,15 @@ class Tree:
 			# Recursively call the fitTree function for like, dislike and unknown Nodes creation
 			current_node.like = Node(current_node, current_node.depth + 1)
 			current_node.like.user_vector = like_vector
-			self.fitTree(current_node.like, like, movie_vectors, K)
+			if len(like) != 0:
+				self.fitTree(current_node.like, like, movie_vectors, K)
 
 			current_node.dislike = Node(current_node, current_node.depth + 1)
 			current_node.dislike.user_vector = dislike_vector
-			self.fitTree(current_node.dislike, dislike, movie_vectors, K)
+			if len(dislike) != 0:
+				self.fitTree(current_node.dislike, dislike, movie_vectors, K)
 			
 			current_node.unknown = Node(current_node, current_node.depth + 1)
 			current_node.unknown.user_vector = unknown_vector
-			self.fitTree(current_node.unknown, unknown, movie_vectors, K)
+			if len(unknown) != 0:
+				self.fitTree(current_node.unknown, unknown, movie_vectors, K)
